@@ -10,41 +10,33 @@ export class SpringInitializerPanel {
 	private readonly _panel: vscode.WebviewPanel;
 	private readonly _extensionUri: vscode.Uri;
 	private readonly _targetPath: string;
-	private readonly _context: vscode.ExtensionContext;
 	private _disposables: vscode.Disposable[] = [];
 
-	public static createOrShow(extensionUri: vscode.Uri, targetPath: string, context: vscode.ExtensionContext) {
-		const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+	public static createOrShow(extensionUri: vscode.Uri, targetPath: string, _context: vscode.ExtensionContext) {
+		const column = vscode.window.activeTextEditor?.viewColumn;
 
-		// If panel already exists, show it
 		if (SpringInitializerPanel.currentPanel) {
 			SpringInitializerPanel.currentPanel._panel.reveal(column);
 			return;
 		}
 
-		// Create new panel
 		const panel = vscode.window.createWebviewPanel("springInitializer", "🍃 Spring Initializer", column || vscode.ViewColumn.One, {
 			enableScripts: true,
 			retainContextWhenHidden: true,
 			localResourceRoots: [vscode.Uri.joinPath(extensionUri, "res")],
 		});
 
-		SpringInitializerPanel.currentPanel = new SpringInitializerPanel(panel, extensionUri, targetPath, context);
+		SpringInitializerPanel.currentPanel = new SpringInitializerPanel(panel, extensionUri, targetPath);
 	}
 
-	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, targetPath: string, context: vscode.ExtensionContext) {
+	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, targetPath: string) {
 		this._panel = panel;
 		this._extensionUri = extensionUri;
 		this._targetPath = targetPath;
-		this._context = context;
 
-		// Set HTML content
 		this._update();
-
-		// Handle panel disposal
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-		// Handle messages from webview
 		this._panel.webview.onDidReceiveMessage(
 			async (message) => {
 				switch (message.command) {
@@ -54,98 +46,65 @@ export class SpringInitializerPanel {
 					case "getMetadata":
 						await this._loadMetadata();
 						break;
-					case "error":
-						vscode.window.showErrorMessage(message.text);
-						break;
 				}
 			},
 			null,
 			this._disposables,
 		);
 
-		// Load metadata after panel is ready
 		this._loadMetadata();
 	}
 
 	private async _loadMetadata() {
 		try {
-			this._panel.webview.postMessage({
-				command: "loading",
-				text: "Fetching Spring Boot metadata...",
-			});
-
+			this._panel.webview.postMessage({ command: "status", text: "Connecting to Spring Initializr...", loading: true });
 			const metadata = await SpringApiService.getAvailableVersions();
-			this._panel.webview.postMessage({
-				command: "metadataLoaded",
-				data: metadata,
-			});
+			this._panel.webview.postMessage({ command: "metadataLoaded", data: metadata });
 		} catch (error: any) {
-			this._panel.webview.postMessage({
-				command: "error",
-				text: `Failed to load metadata: ${error.message}`,
-			});
+			this._panel.webview.postMessage({ command: "error", text: error.message });
+			vscode.window.showErrorMessage(`Spring Initializer: ${error.message}`);
 		}
 	}
 
 	private async _generateProject(config: ProjectConfig) {
 		try {
-			this._panel.webview.postMessage({
-				command: "loading",
-				text: "Generating Spring Boot project...",
-			});
-
+			this._panel.webview.postMessage({ command: "status", text: "Generating project...", loading: true });
 			const zipData = await SpringApiService.generateProject(config);
 			const projectDir = path.join(this._targetPath, config.artifactId);
 
-			// Check if directory already exists
 			if (fs.existsSync(projectDir)) {
-				const overwrite = await vscode.window.showWarningMessage(`Directory "${config.artifactId}" already exists. Do you want to overwrite it?`, { modal: true }, "Yes", "No");
-
+				const overwrite = await vscode.window.showWarningMessage(`Directory "${config.artifactId}" already exists. Overwrite?`, { modal: true }, "Yes");
 				if (overwrite !== "Yes") {
+					this._panel.webview.postMessage({ command: "status", text: "", loading: false });
 					return;
 				}
-
-				// Remove existing directory
 				fs.rmSync(projectDir, { recursive: true, force: true });
 			}
 
-			// Create and extract project
 			fs.mkdirSync(projectDir, { recursive: true });
-			const zip = new AdmZip(Buffer.from(zipData));
+			const zip = new AdmZip(zipData);
 			zip.extractAllTo(projectDir, true);
 
-			const action = await vscode.window.showInformationMessage(`✅ Spring Boot project created at "${config.artifactId}"`, "Open Project", "Open in Current Window");
-
-			// Close the panel
 			this._panel.dispose();
 
-			// Open project based on user choice
+			const action = await vscode.window.showInformationMessage(`✅ Project "${config.artifactId}" created successfully!`, "Open Project", "Open in Current Window");
+
 			if (action === "Open Project") {
-				const uri = vscode.Uri.file(projectDir);
-				await vscode.commands.executeCommand("vscode.openFolder", uri, true);
+				await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(projectDir), true);
 			} else if (action === "Open in Current Window") {
-				const uri = vscode.Uri.file(projectDir);
-				await vscode.commands.executeCommand("vscode.openFolder", uri, false);
+				await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(projectDir), false);
 			}
 		} catch (error: any) {
-			vscode.window.showErrorMessage(`Failed to generate project: ${error.message}`);
-			this._panel.webview.postMessage({
-				command: "error",
-				text: error.message,
-			});
+			vscode.window.showErrorMessage(`Failed: ${error.message}`);
+			this._panel.webview.postMessage({ command: "error", text: error.message });
 		}
 	}
 
 	private _update() {
-		const webview = this._panel.webview;
-		this._panel.webview.html = this._getHtmlForWebview(webview);
+		this._panel.webview.html = this._getHtmlForWebview();
 	}
 
-	private _getHtmlForWebview(webview: vscode.Webview) {
-		// Get icon path
-		const iconPath = vscode.Uri.joinPath(this._extensionUri, "res", "facet-icon-big.png");
-		const iconSrc = webview.asWebviewUri(iconPath);
-
+	private _getHtmlForWebview(): string {
 		return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -153,167 +112,657 @@ export class SpringInitializerPanel {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spring Initializer</title>
     <style>
-        ${this._getStyles()}
+        :root {
+            --spring-green: #6DB33F;
+            --spring-green-dark: #5a9a32;
+            --spring-green-light: rgba(109, 179, 63, 0.1);
+            --bg-primary: var(--vscode-editor-background, #1e1e1e);
+            --bg-secondary: var(--vscode-editor-inactiveSelectionBackground, #2d2d2d);
+            --bg-tertiary: var(--vscode-input-background, #3c3c3c);
+            --text-primary: var(--vscode-editor-foreground, #cccccc);
+            --text-secondary: var(--vscode-descriptionForeground, #999999);
+            --border-color: var(--vscode-panel-border, #404040);
+            --input-bg: var(--vscode-input-background, #3c3c3c);
+            --input-fg: var(--vscode-input-foreground, #cccccc);
+            --input-border: var(--vscode-input-border, #555555);
+            --focus-shadow: 0 0 0 3px rgba(109, 179, 63, 0.3);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 32px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 0 32px;
+            position: relative;
+        }
+
+        .header-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--spring-green), #4a8a2a);
+            border-radius: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(109, 179, 63, 0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--spring-green), #8BC34A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        /* Status Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 10px 24px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.show { display: flex; }
+
+        .toast-spinner {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--spring-green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .toast-text { font-size: 13px; color: var(--text-primary); }
+
+        /* Error */
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #f48771;
+            border-radius: 50px;
+            padding: 10px 24px;
+            display: none;
+            z-index: 1001;
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+        }
+
+        .error-toast.show { display: block; }
+
+        /* Card */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: border-color var(--transition);
+        }
+
+        .card:hover { border-color: rgba(109, 179, 63, 0.3); }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-icon {
+            width: 36px; height: 36px;
+            background: var(--spring-green-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--spring-green);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-grid.col-1 { grid-template-columns: 1fr; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            body { padding: 16px; }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--input-bg);
+            color: var(--input-fg);
+            border: 1.5px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all var(--transition);
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--spring-green);
+            box-shadow: var(--focus-shadow);
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        /* Search */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            padding: 12px 16px 12px 42px;
+            background: var(--input-bg);
+            color: var(--input-fg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 50px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all var(--transition);
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--spring-green);
+            box-shadow: var(--focus-shadow);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Dependency Grid */
+        .dep-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .dep-grid::-webkit-scrollbar { width: 6px; }
+        .dep-grid::-webkit-scrollbar-track { background: transparent; }
+        .dep-grid::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .dep-card {
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dep-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--spring-green-light);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .dep-card:hover {
+            border-color: var(--spring-green);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .dep-card:hover::before { opacity: 0.5; }
+
+        .dep-card.selected {
+            border-color: var(--spring-green);
+            background: rgba(109, 179, 63, 0.12);
+        }
+
+        .dep-card.selected::before { opacity: 1; }
+
+        .dep-card .dep-name {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+            position: relative;
+            z-index: 1;
+        }
+
+        .dep-card.selected .dep-name { color: var(--spring-green); }
+
+        .dep-card .dep-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dep-card .check-mark {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background: var(--spring-green);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            z-index: 2;
+        }
+
+        .dep-card.selected .check-mark { display: flex; }
+
+        /* Selected count */
+        .selected-badge {
+            display: none;
+            text-align: center;
+            margin-top: 16px;
+            padding: 8px 16px;
+            background: var(--spring-green-light);
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--spring-green);
+        }
+
+        .selected-badge.show { display: inline-block; }
+
+        /* Generate Button */
+        .btn-generate {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--spring-green), #5a9a32);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition);
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-generate::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(109, 179, 63, 0.4);
+        }
+
+        .btn-generate:hover::after {
+            width: 600px;
+            height: 600px;
+        }
+
+        .btn-generate:active { transform: translateY(0); }
+
+        .btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-generate:disabled::after { display: none; }
+
+        /* Pulse animation for button */
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(109, 179, 63, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(109, 179, 63, 0); }
+        }
+
+        .btn-generate:not(:disabled) {
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body>
+    <div class="toast" id="toast">
+        <div class="toast-spinner"></div>
+        <span class="toast-text" id="toastText">Loading...</span>
+    </div>
+    <div class="error-toast" id="errorToast"></div>
+
     <div class="container">
         <div class="header">
-            <img src="${iconSrc}" alt="Spring" class="logo" />
-            <div>
-                <h1>Spring Initializer</h1>
-                <p class="subtitle">Bootstrap your Spring Boot application</p>
+            <div class="header-icon">🍃</div>
+            <h1>Spring Initializer</h1>
+            <p class="subtitle">Bootstrap your Spring Boot application in seconds</p>
+        </div>
+
+        <!-- Project Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📦</div>
+                <span class="card-title">Project</span>
             </div>
-        </div>
-
-        <div id="loading" class="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p id="loadingText">Loading...</p>
-        </div>
-
-        <div class="form-section">
-            <h2>📦 Project</h2>
-            <div class="form-row">
+            <div class="form-grid">
                 <div class="form-group">
-                    <label>Project Type</label>
-                    <select id="projectType">
-                        <option value="gradle-project" selected>Gradle - Groovy</option>
-                        <option value="gradle-project-kotlin">Gradle - Kotlin</option>
-                        <option value="maven-project">Maven</option>
-                    </select>
+                    <label>Type</label>
+                    <select id="type"></select>
                 </div>
                 <div class="form-group">
                     <label>Language</label>
-                    <select id="language">
-                        <option value="java" selected>Java</option>
-                        <option value="kotlin">Kotlin</option>
-                        <option value="groovy">Groovy</option>
-                    </select>
+                    <select id="language"></select>
                 </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h2>⚙️ Spring Boot</h2>
-            <div class="form-group">
-                <label>Spring Boot Version</label>
-                <select id="bootVersion">
-                    <option value="">Loading versions...</option>
-                </select>
+        <!-- Spring Boot Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <span class="card-title">Spring Boot</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Version</label>
+                    <select id="bootVersion"><option value="">Loading...</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Java</label>
+                    <select id="javaVersion"><option value="">Loading...</option></select>
+                </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h2>📝 Project Metadata</h2>
-            <div class="form-row">
+        <!-- Metadata Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📝</div>
+                <span class="card-title">Project Metadata</span>
+            </div>
+            <div class="form-grid">
                 <div class="form-group">
                     <label>Group</label>
-                    <input type="text" id="groupId" value="com.example" />
+                    <input type="text" id="groupId" value="com.example" placeholder="com.example">
                 </div>
                 <div class="form-group">
                     <label>Artifact</label>
-                    <input type="text" id="artifactId" value="demo" />
+                    <input type="text" id="artifactId" value="demo" placeholder="demo">
                 </div>
             </div>
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="name" value="demo" />
+            <div class="form-grid" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="name" value="demo" placeholder="demo">
+                </div>
+                <div class="form-group">
+                    <label>Package Name</label>
+                    <input type="text" id="packageName" value="com.example.demo" placeholder="com.example.demo">
+                </div>
             </div>
-            <div class="form-group">
-                <label>Description</label>
-                <input type="text" id="description" value="Demo project for Spring Boot" />
-            </div>
-            <div class="form-group">
-                <label>Package Name</label>
-                <input type="text" id="packageName" value="com.example.demo" />
-            </div>
-            <div class="form-row">
+            <div class="form-grid" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="description" value="Demo project for Spring Boot" placeholder="Project description">
+                </div>
                 <div class="form-group">
                     <label>Packaging</label>
-                    <select id="packaging">
-                        <option value="jar" selected>Jar</option>
-                        <option value="war">War</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Java Version</label>
-                    <select id="javaVersion">
-                        <option value="21" selected>21</option>
-                        <option value="17">17</option>
-                        <option value="11">11</option>
-                    </select>
+                    <select id="packaging"><option value="jar">Jar</option><option value="war">War</option></select>
                 </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h2>📚 Dependencies</h2>
-            <div class="search-box">
-                <input type="text" id="dependencySearch" placeholder="🔍 Search for dependencies..." />
+        <!-- Dependencies Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📚</div>
+                <span class="card-title">Dependencies</span>
             </div>
-            <div id="dependenciesList" class="dependencies-list">
-                <p class="placeholder">Loading dependencies...</p>
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search" placeholder="Search dependencies...">
             </div>
-            <div class="selected-count" id="selectedCount" style="display: none;">
-                <span id="count">0</span> dependencies selected
+            <div id="depGrid" class="dep-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-secondary);">
+                    Loading dependencies...
+                </div>
+            </div>
+            <div style="text-align:center;">
+                <span id="selectedBadge" class="selected-badge">
+                    <span id="selectedCount">0</span> selected
+                </span>
             </div>
         </div>
 
-        <div class="action-bar">
-            <button id="generateBtn" class="btn-primary">
-                🚀 Generate Project
-            </button>
-        </div>
+        <!-- Generate Button -->
+        <button id="generateBtn" class="btn-generate">
+            🚀 Generate Project
+        </button>
     </div>
 
     <script>
         const vscode = acquireVsCodeApi();
-        let allDependencies = [];
-        let selectedDependencies = new Set();
+        let allDeps = [];
+        let selectedDeps = new Set();
 
-        // Event listeners
-        document.getElementById('generateBtn').addEventListener('click', generateProject);
-        document.getElementById('dependencySearch').addEventListener('input', filterDependencies);
-        document.getElementById('groupId').addEventListener('input', updatePackageName);
-        document.getElementById('artifactId').addEventListener('input', updatePackageName);
-        document.getElementById('name').addEventListener('input', function(e) {
-            if (!document.getElementById('artifactId').dataset.manuallyChanged) {
-                document.getElementById('artifactId').value = e.target.value;
-                updatePackageName();
+        // Toast functions
+        function showToast(text) {
+            document.getElementById('toast').classList.add('show');
+            document.getElementById('toastText').textContent = text;
+            document.getElementById('generateBtn').disabled = true;
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.remove('show');
+            document.getElementById('generateBtn').disabled = false;
+        }
+
+        function showError(text) {
+            const el = document.getElementById('errorToast');
+            el.textContent = '❌ ' + text;
+            el.classList.add('show');
+            hideToast();
+            setTimeout(function() { el.classList.remove('show'); }, 6000);
+        }
+
+        // Update package name
+        function updatePackage() {
+            const g = document.getElementById('groupId').value || 'com.example';
+            const a = document.getElementById('artifactId').value || 'demo';
+            document.getElementById('packageName').value = g + '.' + a.replace(/[^a-zA-Z0-9.]/g, '');
+        }
+
+        document.getElementById('groupId').addEventListener('input', updatePackage);
+        document.getElementById('artifactId').addEventListener('input', function() {
+            this.dataset.changed = 'true';
+            updatePackage();
+        });
+        document.getElementById('name').addEventListener('input', function() {
+            if (!document.getElementById('artifactId').dataset.changed) {
+                document.getElementById('artifactId').value = this.value;
+                updatePackage();
             }
         });
-        document.getElementById('artifactId').addEventListener('input', function() {
-            this.dataset.manuallyChanged = 'true';
+
+        // Search
+        document.getElementById('search').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = allDeps.filter(function(d) {
+                return d.name.toLowerCase().includes(term) ||
+                    (d.description && d.description.toLowerCase().includes(term));
+            });
+            renderDeps(filtered);
         });
 
-        function updatePackageName() {
-            const groupId = document.getElementById('groupId').value || 'com.example';
-            const artifactId = document.getElementById('artifactId').value || 'demo';
-            document.getElementById('packageName').value = groupId + '.' + artifactId.replace(/[^a-zA-Z0-9]/g, '');
+        function renderDeps(deps) {
+            const container = document.getElementById('depGrid');
+            container.innerHTML = '';
+
+            if (!deps.length) {
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-secondary);">No dependencies found</div>';
+                return;
+            }
+
+            deps.forEach(function(dep) {
+                const card = document.createElement('div');
+                card.className = 'dep-card' + (selectedDeps.has(dep.id) ? ' selected' : '');
+                card.innerHTML =
+                    '<div class="check-mark">✓</div>' +
+                    '<div class="dep-name">' + dep.name + '</div>' +
+                    '<div class="dep-desc">' + (dep.description || '') + '</div>';
+                card.onclick = function() {
+                    if (selectedDeps.has(dep.id)) {
+                        selectedDeps.delete(dep.id);
+                        card.classList.remove('selected');
+                    } else {
+                        selectedDeps.add(dep.id);
+                        card.classList.add('selected');
+                    }
+                    updateBadge();
+                };
+                container.appendChild(card);
+            });
         }
 
-        function showLoading(text) {
-            document.getElementById('loading').style.display = 'flex';
-            document.getElementById('loadingText').textContent = text;
+        function updateBadge() {
+            const count = selectedDeps.size;
+            const badge = document.getElementById('selectedBadge');
+            if (count > 0) {
+                badge.classList.add('show');
+                document.getElementById('selectedCount').textContent = count;
+            } else {
+                badge.classList.remove('show');
+            }
         }
 
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-
-        function generateProject() {
+        // Generate
+        document.getElementById('generateBtn').addEventListener('click', function() {
             const groupId = document.getElementById('groupId').value.trim();
             const artifactId = document.getElementById('artifactId').value.trim();
+            const bootVersion = document.getElementById('bootVersion').value;
 
             if (!groupId || !artifactId) {
-                vscode.postMessage({ command: 'error', text: 'Group and Artifact are required!' });
+                showError('Group and Artifact are required');
+                return;
+            }
+            if (!bootVersion) {
+                showError('Please select a Spring Boot version');
                 return;
             }
 
             const config = {
-                type: document.getElementById('projectType').value,
+                type: document.getElementById('type').value,
                 language: document.getElementById('language').value,
-                bootVersion: document.getElementById('bootVersion').value,
+                bootVersion: bootVersion,
                 groupId: groupId,
                 artifactId: artifactId,
                 name: document.getElementById('name').value.trim() || artifactId,
@@ -321,395 +770,95 @@ export class SpringInitializerPanel {
                 packageName: document.getElementById('packageName').value.trim(),
                 packaging: document.getElementById('packaging').value,
                 javaVersion: document.getElementById('javaVersion').value,
-                dependencies: Array.from(selectedDependencies)
+                dependencies: Array.from(selectedDeps)
             };
 
-            showLoading('Generating project...');
-            document.getElementById('generateBtn').disabled = true;
+            showToast('Generating project...');
             vscode.postMessage({ command: 'generate', config: config });
-        }
-
-        function filterDependencies(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const filtered = allDependencies.filter(dep => 
-                dep.name.toLowerCase().includes(searchTerm) || 
-                (dep.description && dep.description.toLowerCase().includes(searchTerm))
-            );
-            renderDependencies(filtered);
-        }
-
-        function renderDependencies(dependencies) {
-            const container = document.getElementById('dependenciesList');
-            container.innerHTML = '';
-
-            if (dependencies.length === 0) {
-                container.innerHTML = '<p class="placeholder">No dependencies found</p>';
-                return;
-            }
-
-            dependencies.forEach(dep => {
-                const card = document.createElement('div');
-                card.className = 'dependency-card' + (selectedDependencies.has(dep.id) ? ' selected' : '');
-                card.innerHTML = \`
-                    <div class="dependency-name">\${dep.name}</div>
-                    <div class="dependency-desc">\${dep.description || 'No description'}</div>
-                \`;
-                card.addEventListener('click', () => toggleDependency(dep, card));
-                container.appendChild(card);
-            });
-        }
-
-        function toggleDependency(dep, card) {
-            if (selectedDependencies.has(dep.id)) {
-                selectedDependencies.delete(dep.id);
-                card.classList.remove('selected');
-            } else {
-                selectedDependencies.add(dep.id);
-                card.classList.add('selected');
-            }
-            updateSelectedCount();
-        }
-
-        function updateSelectedCount() {
-            const countDiv = document.getElementById('selectedCount');
-            const countSpan = document.getElementById('count');
-            if (selectedDependencies.size > 0) {
-                countDiv.style.display = 'block';
-                countSpan.textContent = selectedDependencies.size;
-            } else {
-                countDiv.style.display = 'none';
-            }
-        }
+        });
 
         // Handle messages from extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            switch (message.command) {
-                case 'loading':
-                    showLoading(message.text);
-                    break;
-                case 'metadataLoaded':
-                    hideLoading();
-                    if (message.data.bootVersion) {
-                        const versionSelect = document.getElementById('bootVersion');
-                        versionSelect.innerHTML = message.data.bootVersion.values
-                            .map(v => \`<option value="\${v.id}">\${v.name}</option>\`)
-                            .join('');
-                    }
-                    if (message.data.dependencies) {
-                        allDependencies = message.data.dependencies.values;
-                        renderDependencies(allDependencies);
-                    }
-                    break;
-                case 'error':
-                    hideLoading();
-                    document.getElementById('generateBtn').disabled = false;
-                    break;
+        window.addEventListener('message', function(e) {
+            const msg = e.data;
+
+            if (msg.command === 'status') {
+                if (msg.loading) showToast(msg.text);
+                else hideToast();
+            }
+            else if (msg.command === 'metadataLoaded') {
+                hideToast();
+
+                const data = msg.data;
+
+                // Types
+                if (data.types && data.types.values.length) {
+                    const sel = document.getElementById('type');
+                    sel.innerHTML = data.types.values.map(function(v) {
+                        return '<option value="' + v.id + '">' + v.name + '</option>';
+                    }).join('');
+                    if (data.types.default) sel.value = data.types.default;
+                }
+
+                // Languages
+                if (data.languages && data.languages.values.length) {
+                    const sel = document.getElementById('language');
+                    sel.innerHTML = data.languages.values.map(function(v) {
+                        return '<option value="' + v.id + '">' + v.name + '</option>';
+                    }).join('');
+                    if (data.languages.default) sel.value = data.languages.default;
+                }
+
+                // Boot Versions
+                if (data.bootVersions && data.bootVersions.values.length) {
+                    const sel = document.getElementById('bootVersion');
+                    sel.innerHTML = data.bootVersions.values.map(function(v) {
+                        return '<option value="' + v.id + '">' + v.name + '</option>';
+                    }).join('');
+                    if (data.bootVersions.default) sel.value = data.bootVersions.default;
+                }
+
+                // Java Versions
+                if (data.javaVersions && data.javaVersions.values.length) {
+                    const sel = document.getElementById('javaVersion');
+                    sel.innerHTML = data.javaVersions.values.map(function(v) {
+                        return '<option value="' + v.id + '">' + v.name + '</option>';
+                    }).join('');
+                    if (data.javaVersions.default) sel.value = data.javaVersions.default;
+                }
+
+                // Packaging
+                if (data.packagings && data.packagings.values.length) {
+                    const sel = document.getElementById('packaging');
+                    sel.innerHTML = data.packagings.values.map(function(v) {
+                        return '<option value="' + v.id + '">' + v.name + '</option>';
+                    }).join('');
+                    if (data.packagings.default) sel.value = data.packagings.default;
+                }
+
+                // Dependencies
+                if (data.dependencies && data.dependencies.values.length) {
+                    allDeps = data.dependencies.values;
+                    renderDeps(allDeps);
+                }
+            }
+            else if (msg.command === 'error') {
+                showError(msg.text);
             }
         });
 
-        // Load metadata on startup
-        showLoading('Connecting to Spring Initializr...');
+        // Start loading
+        showToast('Connecting to Spring Initializr...');
         vscode.postMessage({ command: 'getMetadata' });
     </script>
 </body>
 </html>`;
 	}
 
-	private _getStyles(): string {
-		return `
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            padding: 20px;
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--vscode-panel-border);
-        }
-
-        .logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: #6DB33F;
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: var(--vscode-descriptionForeground);
-            font-size: 14px;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 20px;
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid var(--vscode-panel-border);
-        }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--vscode-panel-border);
-            border-top-color: #6DB33F;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .form-section {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--vscode-panel-border);
-            transition: border-color 0.2s;
-        }
-
-        .form-section:hover {
-            border-color: #6DB33F;
-        }
-
-        .form-section h2 {
-            font-size: 16px;
-            margin-bottom: 15px;
-            color: #6DB33F;
-            font-weight: 600;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--vscode-input-placeholderForeground);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px 12px;
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-            font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #6DB33F;
-            box-shadow: 0 0 0 2px rgba(109, 179, 63, 0.2);
-        }
-
-        .search-box {
-            margin-bottom: 15px;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .search-box input:focus {
-            outline: none;
-            border-color: #6DB33F;
-            box-shadow: 0 0 0 2px rgba(109, 179, 63, 0.2);
-        }
-
-        .dependencies-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 5px;
-        }
-
-        .dependencies-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .dependencies-list::-webkit-scrollbar-track {
-            background: var(--vscode-scrollbarSlider-background);
-            border-radius: 4px;
-        }
-
-        .dependencies-list::-webkit-scrollbar-thumb {
-            background: var(--vscode-scrollbarSlider-hoverBackground);
-            border-radius: 4px;
-        }
-
-        .placeholder {
-            color: var(--vscode-descriptionForeground);
-            text-align: center;
-            padding: 20px;
-            grid-column: 1 / -1;
-        }
-
-        .dependency-card {
-            background-color: var(--vscode-editor-background);
-            border: 2px solid var(--vscode-panel-border);
-            border-radius: 8px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .dependency-card:hover {
-            border-color: #6DB33F;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .dependency-card.selected {
-            background-color: rgba(109, 179, 63, 0.15);
-            border-color: #6DB33F;
-            box-shadow: 0 0 0 1px rgba(109, 179, 63, 0.3);
-        }
-
-        .dependency-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 13px;
-            color: var(--vscode-editor-foreground);
-        }
-
-        .dependency-card.selected .dependency-name {
-            color: #6DB33F;
-        }
-
-        .dependency-desc {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            line-height: 1.4;
-        }
-
-        .selected-count {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: rgba(109, 179, 63, 0.1);
-            border-radius: 6px;
-            text-align: center;
-            font-size: 13px;
-            color: #6DB33F;
-            font-weight: 500;
-        }
-
-        .action-bar {
-            text-align: right;
-            padding: 20px 0;
-            position: sticky;
-            bottom: 0;
-            background-color: var(--vscode-editor-background);
-            border-top: 2px solid var(--vscode-panel-border);
-            margin-top: 20px;
-        }
-
-        .btn-primary {
-            background-color: #6DB33F;
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-primary:hover {
-            background-color: #5a9a32;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(109, 179, 63, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        @media (max-width: 600px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .dependencies-list {
-                grid-template-columns: 1fr;
-            }
-        }
-    `;
-	}
-
 	public dispose() {
 		SpringInitializerPanel.currentPanel = undefined;
-
 		this._panel.dispose();
-
 		while (this._disposables.length) {
-			const x = this._disposables.pop();
-			if (x) {
-				x.dispose();
-			}
+			this._disposables.pop()?.dispose();
 		}
 	}
 }
