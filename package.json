@@ -3,7 +3,7 @@
 	"type": "module",
 	"displayName": "Spring Initializer",
 	"description": "🌵 Spring Initializer - Auto code generator for Spring Boot projects for 💠 VSCode.",
-	"version": "1.10.25",
+	"version": "1.10.27",
 	"private": false,
 	"publisher": "GhurbeSABZI",
 	"packageManager": "bun@1.3.14",
