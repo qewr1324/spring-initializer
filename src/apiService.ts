@@ -37,10 +37,11 @@ function httpGet(url: string): Promise<string> {
 
 		const options = {
 			headers: { "User-Agent": "VSCode-Spring-Initializer/1.0" },
-			family: 4, // 👈 Force IPv4
+			family: 4,
+			timeout: 10000,
 		};
 
-		client
+		const req = client
 			.get(url, options, (res) => {
 				if (res.statusCode === 301 || res.statusCode === 302) {
 					httpGet(res.headers.location!).then(resolve).catch(reject);
@@ -56,6 +57,11 @@ function httpGet(url: string): Promise<string> {
 				res.on("error", reject);
 			})
 			.on("error", reject);
+
+		req.on("timeout", () => {
+			req.destroy();
+			reject(new Error("Request timeout"));
+		});
 	});
 }
 
@@ -65,10 +71,11 @@ function httpGetBinary(url: string): Promise<Buffer> {
 
 		const options = {
 			headers: { "User-Agent": "VSCode-Spring-Initializer/1.0" },
-			family: 4, // 👈 Force IPv4
+			family: 4,
+			timeout: 30000,
 		};
 
-		client
+		const req = client
 			.get(url, options, (res) => {
 				if (res.statusCode === 301 || res.statusCode === 302) {
 					httpGetBinary(res.headers.location!).then(resolve).catch(reject);
@@ -86,6 +93,11 @@ function httpGetBinary(url: string): Promise<Buffer> {
 				res.on("error", reject);
 			})
 			.on("error", reject);
+
+		req.on("timeout", () => {
+			req.destroy();
+			reject(new Error("Request timeout"));
+		});
 	});
 }
 

@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { SpringApiService } from "./apiService.js";
 import type { ProjectConfig } from "./apiService.js";
-import AdmZip from "adm-zip";
+const AdmZip = require("adm-zip");
 
 export class SpringInitializerPanel {
 	public static currentPanel: SpringInitializerPanel | undefined;
@@ -11,6 +11,8 @@ export class SpringInitializerPanel {
 	private readonly _extensionUri: vscode.Uri;
 	private _targetPath: string | undefined;
 	private _disposables: vscode.Disposable[] = [];
+	private _metadataLoaded: boolean = false;
+	private _isDisposed: boolean = false; // ← پرچم دستی
 
 	public static createOrShow(extensionUri: vscode.Uri, preSelectedPath: string | undefined, _context: vscode.ExtensionContext) {
 		const column = vscode.window.activeTextEditor?.viewColumn;
@@ -38,7 +40,15 @@ export class SpringInitializerPanel {
 		this._targetPath = preSelectedPath;
 
 		this._update();
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+		this._panel.onDidDispose(
+			() => {
+				this._isDisposed = true;
+				this.dispose();
+			},
+			null,
+			this._disposables,
+		);
 
 		this._panel.webview.onDidReceiveMessage(
 			async (message) => {
@@ -66,26 +76,61 @@ export class SpringInitializerPanel {
 			this._disposables,
 		);
 
-		this._loadMetadata();
+		setTimeout(() => {
+			this._loadMetadata().catch((err) => {
+				console.error("Failed to load metadata:", err);
+			});
+		}, 500);
 	}
 
 	private _sendTheme() {
-		const theme = vscode.window.activeColorTheme;
-		const isDark = theme.kind === vscode.ColorThemeKind.Dark || theme.kind === vscode.ColorThemeKind.HighContrast;
-		this._panel.webview.postMessage({
-			command: "themeChanged",
-			isDark: isDark,
-			themeKind: isDark ? "dark" : "light",
-		});
+		if (this._isDisposed) return;
+		try {
+			const theme = vscode.window.activeColorTheme;
+			const isDark = theme.kind === vscode.ColorThemeKind.Dark || theme.kind === vscode.ColorThemeKind.HighContrast;
+			this._panel.webview.postMessage({
+				command: "themeChanged",
+				isDark: isDark,
+				themeKind: isDark ? "dark" : "light",
+			});
+		} catch (error) {}
 	}
 
 	private async _loadMetadata() {
+		if (this._isDisposed) {
+			console.log("Webview disposed, skipping metadata load");
+			return;
+		}
+
+		if (this._metadataLoaded) {
+			console.log("Metadata already loaded");
+			return;
+		}
+
 		try {
-			this._panel.webview.postMessage({ command: "status", text: "Connecting to Spring Initializr...", loading: true });
+			if (this._isDisposed) return;
+
+			this._panel.webview.postMessage({
+				command: "status",
+				text: "Connecting to Spring Initializr...",
+				loading: true,
+			});
+
 			const metadata = await SpringApiService.getAvailableVersions();
-			this._panel.webview.postMessage({ command: "metadataLoaded", data: metadata });
+
+			if (this._isDisposed) return;
+
+			this._panel.webview.postMessage({
+				command: "metadataLoaded",
+				data: metadata,
+			});
+			this._metadataLoaded = true;
 		} catch (error: any) {
-			this._panel.webview.postMessage({ command: "error", text: error.message });
+			if (this._isDisposed) return;
+			this._panel.webview.postMessage({
+				command: "error",
+				text: error.message,
+			});
 			vscode.window.showErrorMessage(`Spring Initializer: ${error.message}`);
 		}
 	}
@@ -104,7 +149,9 @@ export class SpringInitializerPanel {
 				});
 
 				if (!folderUri?.[0]) {
-					this._panel.webview.postMessage({ command: "status", text: "", loading: false });
+					if (!this._isDisposed) {
+						this._panel.webview.postMessage({ command: "status", text: "", loading: false });
+					}
 					return;
 				}
 
@@ -115,20 +162,31 @@ export class SpringInitializerPanel {
 			await this._generateProject(config, targetPath);
 		} catch (error: any) {
 			vscode.window.showErrorMessage(`Failed: ${error.message}`);
-			this._panel.webview.postMessage({ command: "error", text: error.message });
+			if (!this._isDisposed) {
+				this._panel.webview.postMessage({ command: "error", text: error.message });
+			}
 		}
 	}
 
 	private async _generateProject(config: ProjectConfig, targetPath: string) {
 		try {
-			this._panel.webview.postMessage({ command: "status", text: "Generating project...", loading: true });
+			if (this._isDisposed) return;
+
+			this._panel.webview.postMessage({
+				command: "status",
+				text: "Generating project...",
+				loading: true,
+			});
+
 			const zipData = await SpringApiService.generateProject(config);
 			const projectDir = path.join(targetPath, config.artifactId);
 
 			if (fs.existsSync(projectDir)) {
 				const overwrite = await vscode.window.showWarningMessage(`Directory "${config.artifactId}" already exists. Overwrite?`, { modal: true }, "Yes");
 				if (overwrite !== "Yes") {
-					this._panel.webview.postMessage({ command: "status", text: "", loading: false });
+					if (!this._isDisposed) {
+						this._panel.webview.postMessage({ command: "status", text: "", loading: false });
+					}
 					return;
 				}
 				fs.rmSync(projectDir, { recursive: true, force: true });
@@ -138,7 +196,9 @@ export class SpringInitializerPanel {
 			const zip = new AdmZip(zipData);
 			zip.extractAllTo(projectDir, true);
 
-			this._panel.dispose();
+			if (!this._isDisposed) {
+				this._panel.dispose();
+			}
 
 			const action = await vscode.window.showInformationMessage(`✅ Project "${config.artifactId}" created successfully!`, "Open Project", "Open in Current Window");
 
@@ -149,7 +209,9 @@ export class SpringInitializerPanel {
 			}
 		} catch (error: any) {
 			vscode.window.showErrorMessage(`Failed: ${error.message}`);
-			this._panel.webview.postMessage({ command: "error", text: error.message });
+			if (!this._isDisposed) {
+				this._panel.webview.postMessage({ command: "error", text: error.message });
+			}
 		}
 	}
 
@@ -288,10 +350,16 @@ export class SpringInitializerPanel {
 	}
 
 	public dispose() {
+		this._isDisposed = true;
 		SpringInitializerPanel.currentPanel = undefined;
-		this._panel.dispose();
+
+		try {
+			this._panel.dispose();
+		} catch (error) {}
+
 		while (this._disposables.length) {
-			this._disposables.pop()?.dispose();
+			const d = this._disposables.pop();
+			if (d) d.dispose();
 		}
 	}
 }

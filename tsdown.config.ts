@@ -1,9 +1,16 @@
-import { execFileSync } from "node:child_process";
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
 	entry: ["src/extension.ts"],
 	format: ["cjs"],
-	external: ["vscode"],
 	outDir: "dist",
+	external: ["vscode"],
+	dts: false,
+	clean: true,
+	platform: "node",
+	target: "node16",
+	noExternal: ["adm-zip"],
+	onSuccess: () => {
+		console.log("✅ Build complete!");
+	},
 });

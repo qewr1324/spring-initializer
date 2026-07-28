@@ -20,7 +20,6 @@ res/*.gif
 
 # Plus
 pnpm-workspace.yaml
-info.json
 eslint.config.js
 bun.lock
 .bunfig.toml
