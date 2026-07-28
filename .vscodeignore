@@ -3,15 +3,24 @@
 src/**
 test/**
 scripts/**
+.gitignore
+node_modules/**
+
+# TypeScript
+*.ts
+!**/*.d.ts
 tsconfig.json
 tsdown.config.ts
 taze.config.ts
 eslint.config.mjs
-.gitignore
-*.ts
-!**/*.d.ts
-node_modules/**
 res/*.mp4
 res/*.gif
-res/*.png
+
+# Keep these
+!dist/**
+!media/**
+!package.json
+!readme.md
+!LICENSE
+!CHANGELOG.md
 !res/spring-icon-big.png

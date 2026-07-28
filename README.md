@@ -66,12 +66,6 @@ No more switching to your browser. No more downloading and extracting ZIP files 
 
 ---
 
-## 📸 Screenshots
-
-<div align="center"> <img src="./res/screenshot-dark.png" alt="Spring Initializer Dark Theme" width="800" /> <p><em>Dark theme with dependency selection</em></p> <img src="./res/screenshot-light.png" alt="Spring Initializer Light Theme" width="800" /> <p><em>Light theme — fully responsive layout</em></p> </div>
-
----
-
 ## 🚀 Quick Start
 
 ### Installation
