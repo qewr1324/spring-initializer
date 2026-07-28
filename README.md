@@ -1,130 +1,30 @@
 # 🍃 Code Facet Generator
 
 > **Dynamic facet-based code generator for multiple languages and frameworks.**
-
-<!-- <div align="center">
-  <table>
-    <tr>
-      <td align="center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px;">
-        <h3 style="color: white; margin: 0;">🍃 Dynamic facet-based code generator for multiple languages and frameworks.</h3>
-      </td>
-    </tr>
-  </table>
-</div> -->
-
-<!-- <div align="center">
-  <div style="background-image: url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'); background-size: cover; background-position: center; padding: 40px; border-radius: 12px; position: relative;">
-    <div style="background: rgba(0,0,0,0.7); padding: 20px; border-radius: 8px;">
-      <h3 style="color: white; margin: 0;">🍃 Dynamic facet-based code generator for multiple languages and frameworks.</h3>
-    </div>
-  </div>
-</div> -->
-
-<!-- <div align="center">
-  <div style="background: linear-gradient(135deg, #4A90E2 0%, #7B68EE 100%); padding: 30px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
-    <img src="./media/facet-icon.svg" width="64" height="64" style="margin-bottom: 16px;" alt="icon" />
-    <h2 style="color: white; margin: 8px 0;">🍃 Code Facet Generator</h2>
-    <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 8px 0;">
-      <strong>Dynamic facet-based code generator for multiple languages and frameworks.</strong>
-    </p>
-    <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin: 4px 0;">
-      ⚡ 327+ templates • 32 categories • 150+ tools
-    </p>
-  </div>
-</div> -->
-
-<!-- <div align="center">
-
-<table>
-<tr>
-<td align="center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 60px 40px; border-radius: 20px;">
-  <img src="./media/facet-icon.svg" width="96" height="96" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));" alt="Code Facet Generator Icon" />
-  <h1 style="color: white; font-size: 36px; margin: 20px 0 10px 0;">🍃 Code Facet Generator</h1>
-  <p style="color: rgba(255,255,255,0.95); font-size: 18px; margin: 10px 0;">
-    <strong>Dynamic facet-based code generator for multiple languages and frameworks.</strong>
-  </p>
-  <div style="margin: 20px 0;">
-    <span style="background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; margin: 4px; font-size: 14px;">⚡ 327+ Templates</span>
-    <span style="background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; margin: 4px; font-size: 14px;">📦 32 Categories</span>
-    <span style="background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; margin: 4px; font-size: 14px;">🛠️ 150+ Tools</span>
-  </div>
-  <div style="margin: 20px 0 0 0;">
-    <a href="https://github.com/qewr1324/code-facet-generator/stargazers">
-      <img src="https://img.shields.io/github/stars/qewr1324/code-facet-generator?style=for-the-badge&color=FFD700" alt="stars" />
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="license" />
-    </a>
-  </div>
-</td>
-</tr>
-</table> -->
-
-</div>
-
 ---
 
 <!-- Image & Icon -->
 <div align="center">
-  <a href="https://github.com/qewr1324/code-facet-generator">
-    <img src="./res/facet-icon-big.png" alt="Code Facet Generator Icon" width="128" height="128" />
+  <a href="https://github.com/qewr1324/spring-initializer">
+    <img src="./res/spring-icon-big.png" alt="Spring Initializer Icon" width="128" height="128" />
   </a>
   
   <h3>✨ Generate ready-to-use configuration files instantly ✨</h3>
 
 <!-- Static Badges -->
 
-[![Version](https://img.shields.io/github/v/release/qewr1324/code-facet-generator)](https://github.com/qewr1324/code-facet-generator)
+[![Version](https://img.shields.io/github/v/release/qewr1324/spring-initializer)](https://github.com/qewr1324/spring-initializer)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Languages](https://img.shields.io/badge/languages-32%20categories-orange.svg)](#supported-languages--frameworks)
 [![Files](https://img.shields.io/badge/facets-327%2B-purple.svg)](#statistics)
 
-<!-- Dynamic GitHub Badges -->
-<!-- [![GitHub release (latest)](https://img.shields.io/github/v/release/qewr1324/code-facet-generator?color=blue&label=latest%20release)](https://github.com/qewr1324/code-facet-generator/releases)
-[![GitHub Release Date](https://img.shields.io/github/release-date/qewr1324/code-facet-generator?label=last%20release)](https://github.com/qewr1324/code-facet-generator/releases)
-[![GitHub commits since latest release](https://img.shields.io/github/commits-since/qewr1324/code-facet-generator/latest?label=commits%20since%20release)](https://github.com/qewr1324/code-facet-generator/commits/main) -->
+[![GitHub stars](https://img.shields.io/github/stars/qewr1324/spring-initializer?style=social)](https://github.com/qewr1324/spring-initializer/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/qewr1324/spring-initializer?style=social)](https://github.com/qewr1324/spring-initializer/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/qewr1324/spring-initializer?style=social)](https://github.com/qewr1324/spring-initializer/watchers)
 
-[![GitHub stars](https://img.shields.io/github/stars/qewr1324/code-facet-generator?style=social)](https://github.com/qewr1324/code-facet-generator/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/qewr1324/code-facet-generator?style=social)](https://github.com/qewr1324/code-facet-generator/network/members)
-[![GitHub watchers](https://img.shields.io/github/watchers/qewr1324/code-facet-generator?style=social)](https://github.com/qewr1324/code-facet-generator/watchers)
-
-<!-- [![GitHub issues](https://img.shields.io/github/issues/qewr1324/code-facet-generator?color=red)](https://github.com/qewr1324/code-facet-generator/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/qewr1324/code-facet-generator?color=blueviolet)](https://github.com/qewr1324/code-facet-generator/pulls)
-[![GitHub closed issues](https://img.shields.io/github/issues-closed/qewr1324/code-facet-generator?color=green)](https://github.com/qewr1324/code-facet-generator/issues?q=is%3Aissue+is%3Aclosed)
-[![GitHub closed PRs](https://img.shields.io/github/issues-pr-closed/qewr1324/code-facet-generator?color=brightgreen)](https://github.com/qewr1324/code-facet-generator/pulls?q=is%3Apr+is%3Aclosed)
-
-[![GitHub contributors](https://img.shields.io/github/contributors/qewr1324/code-facet-generator?color=orange)](https://github.com/qewr1324/code-facet-generator/graphs/contributors)
-[![GitHub last commit](https://img.shields.io/github/last-commit/qewr1324/code-facet-generator?color=blue)](https://github.com/qewr1324/code-facet-generator/commits/main)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/qewr1324/code-facet-generator?color=yellowgreen)](https://github.com/qewr1324/code-facet-generator/graphs/commit-activity)
-[![GitHub top language](https://img.shields.io/github/languages/top/qewr1324/code-facet-generator?color=purple)](https://github.com/qewr1324/code-facet-generator) -->
-
-[![GitHub code size](https://img.shields.io/github/languages/code-size/qewr1324/code-facet-generator?color=lightgrey)](https://github.com/qewr1324/code-facet-generator)
-[![GitHub repo size](https://img.shields.io/github/repo-size/qewr1324/code-facet-generator?color=lightgrey)](https://github.com/qewr1324/code-facet-generator)
-[![GitHub file count](https://img.shields.io/github/directory-file-count/qewr1324/code-facet-generator?color=lightgrey)](https://github.com/qewr1324/code-facet-generator)
-
-<!-- CI/CD Badges -->
-<!-- [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/qewr1324/code-facet-generator/main.yml?label=build)](https://github.com/qewr1324/code-facet-generator/actions)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/qewr1324/code-facet-generator/test.yml?label=tests)](https://github.com/qewr1324/code-facet-generator/actions) -->
-
-<!-- Marketplace Badges -->
-<!-- [![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/qewr1324.code-facet-generator?label=vs%20code)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/qewr1324.code-facet-generator?label=installs)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/qewr1324.code-facet-generator?label=downloads)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/qewr1324.code-facet-generator?label=rating)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator) -->
-
-<!-- Social -->
-<!-- [![Twitter Follow](https://img.shields.io/twitter/follow/your-handle?style=social)](https://twitter.com/your-handle)
-[![Discord](https://img.shields.io/discord/your-server-id?color=5865F2&label=discord&logo=discord&logoColor=white)](https://discord.gg/your-invite) -->
-
-<!-- Iran -->
-<!-- [![Telegram](https://img.shields.io/badge/Telegram-Channel-blue?logo=telegram)](https://t.me/your-channel)
-[![Telegram Group](https://img.shields.io/badge/Telegram-Group-blue?logo=telegram)](https://t.me/your-group)
-[![Bale](https://img.shields.io/badge/Bale-Channel-28A745?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0wIDE4Yy00LjQxIDAtOC0zLjU5LTgtOHMzLjU5LTggOC04IDggMy41OSA4IDgtMy41OSA4LTggOHoiLz48L3N2Zz4=)](https://ble.ir/your-channel)
-[![Bale Group](https://img.shields.io/badge/Bale-Group-28A745?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0wIDE4Yy00LjQxIDAtOC0zLjU5LTgtOHMzLjU5LTggOC04IDggMy41OSA4IDgtMy41OSA4LTggOHoiLz48L3N2Zz4=)](https://ble.ir/your-group) -->
-
-<!-- Donation -->
-<!-- [![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-red?logo=github)](https://github.com/sponsors/user)
-[![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?logo=buymeacoffee)](https://buymeacoffee.com/your-handle) -->
+[![GitHub code size](https://img.shields.io/github/languages/code-size/qewr1324/spring-initializer?color=lightgrey)](https://github.com/qewr1324/spring-initializer)
+[![GitHub repo size](https://img.shields.io/github/repo-size/qewr1324/spring-initializer?color=lightgrey)](https://github.com/qewr1324/spring-initializer)
+[![GitHub file count](https://img.shields.io/github/directory-file-count/qewr1324/spring-initializer?color=lightgrey)](https://github.com/qewr1324/spring-initializer)
 
 </div>
 
@@ -134,7 +34,7 @@
 
 <div align="center">
 
-![Demo](https://github.com/qewr1324/code-facet-generator/raw/main/res/review.gif)
+![Demo](https://github.com/qewr1324/spring-initializer/raw/main/res/review.gif)
 
 </div>
 
@@ -160,17 +60,17 @@ No more googling "spring boot application.yml example" or "next.config.js boiler
 
 <!-- Marketplace Badges -->
 
-[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/qewr1324.code-facet-generator?label=vs%20code)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/qewr1324.code-facet-generator?label=installs)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/qewr1324.code-facet-generator?label=downloads)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
-[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/qewr1324.code-facet-generator?label=rating)](https://marketplace.visualstudio.com/items?itemName=qewr1324.code-facet-generator)
+[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/qewr1324.spring-initializer?label=vs%20code)](https://marketplace.visualstudio.com/items?itemName=qewr1324.spring-initializer)
+[![VS Code Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/qewr1324.spring-initializer?label=installs)](https://marketplace.visualstudio.com/items?itemName=qewr1324.spring-initializer)
+[![VS Code Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/qewr1324.spring-initializer?label=downloads)](https://marketplace.visualstudio.com/items?itemName=qewr1324.spring-initializer)
+[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/qewr1324.spring-initializer?label=rating)](https://marketplace.visualstudio.com/items?itemName=qewr1324.spring-initializer)
 
 ---
 
 ## 📁 Project Structure
 
 ```bash
-code-facet-generator/
+spring-initializer/
 ├── 📄 package.json                  # VS Code extension manifest
 ├── 📄 tsconfig.json                 # TypeScript configuration
 ├── 📄 info.json                     # All facet definitions (32 categories, 327+ facets)
