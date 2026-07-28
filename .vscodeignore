@@ -13,8 +13,17 @@ tsconfig.json
 tsdown.config.ts
 taze.config.ts
 eslint.config.mjs
+
+# Media
 res/*.mp4
 res/*.gif
+
+# Plus
+pnpm-workspace.yaml
+info.json
+eslint.config.js
+bun.lock
+.bunfig.toml
 
 # Keep these
 !dist/**
